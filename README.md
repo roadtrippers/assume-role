@@ -85,7 +85,23 @@ function assume-role(){
     unset AWS_SESSION_TOKEN
     unset AWS_SECURITY_TOKEN
     unset ASSUMED_ROLE
-    eval $(/usr/local/bin/assume-role $@)
+
+    if [ "$#" -eq 0 ]; then
+        profiles=( `grep -E '\[profile .*\]' ~/.aws/config | sed -E 's#.*\[profile (.*)\].*#\1#' | sort` )
+        echo "Select profile to use:"
+        select profile in "${profiles[@]}"; do
+            if [[ -z "$profile" ]]; then
+                echo "Invalid selection '$REPLY'"
+            else
+                echo "Using profile ${profile}"
+                eval $(/usr/local/bin/assume-role $profile)
+                break
+            fi
+        done
+    else
+        eval $(/usr/local/bin/assume-role $@)
+    fi
+
     export TF_VAR_aws_access_key=${AWS_ACCESS_KEY_ID}
     export TF_VAR_aws_secret_key=${AWS_SECRET_ACCESS_KEY}
     export TF_VAR_aws_session_token=${AWS_SESSION_TOKEN}
